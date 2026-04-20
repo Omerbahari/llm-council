@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# OpenRouter API key
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# OpenRouter API key (strip whitespace/newlines to avoid "illegal header" errors
+# when the value was piped into an env store with a trailing newline).
+OPENROUTER_API_KEY = (os.getenv("OPENROUTER_API_KEY") or "").strip()
 
 # Council members - list of OpenRouter model identifiers
 COUNCIL_MODELS = [
