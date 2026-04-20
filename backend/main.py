@@ -75,7 +75,55 @@ class Conversation(BaseModel):
 @app.get("/")
 async def root():
     """Health check endpoint."""
-    return {"status": "ok", "service": "LLM Council API"}
+    return {"status": "ok", "service": "Amp Doctor Council API"}
+
+
+@app.get("/api/debug")
+async def debug():
+    """Diagnostic endpoint to diagnose upstream/API-key/routing issues."""
+    import os
+    import httpx
+    import time
+    from .config import OPENROUTER_API_KEY, OPENROUTER_API_URL, COUNCIL_MODELS
+
+    key = os.getenv("OPENROUTER_API_KEY") or OPENROUTER_API_KEY or ""
+    result: Dict[str, Any] = {
+        "has_OPENROUTER_API_KEY_env": bool(os.getenv("OPENROUTER_API_KEY")),
+        "key_prefix": (key[:12] + "…") if key else None,
+        "key_len": len(key),
+        "vercel_env": os.getenv("VERCEL"),
+        "vercel_region": os.getenv("VERCEL_REGION"),
+        "council_models": COUNCIL_MODELS,
+        "openrouter_reachable": None,
+        "openrouter_models_call": None,
+        "tiny_completion": None,
+    }
+
+    try:
+        t0 = time.time()
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            r = await c.get("https://openrouter.ai/api/v1/models", headers={"Authorization": f"Bearer {key}"})
+            result["openrouter_reachable"] = {"status": r.status_code, "ms": int((time.time() - t0) * 1000)}
+    except Exception as e:  # pragma: no cover - diagnostic
+        result["openrouter_reachable"] = {"error": f"{type(e).__name__}: {e}"}
+
+    try:
+        t0 = time.time()
+        async with httpx.AsyncClient(timeout=30.0) as c:
+            r = await c.post(
+                OPENROUTER_API_URL,
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={"model": "openai/gpt-5.4", "messages": [{"role": "user", "content": "reply: ok"}]},
+            )
+            result["tiny_completion"] = {
+                "status": r.status_code,
+                "ms": int((time.time() - t0) * 1000),
+                "body_preview": r.text[:400],
+            }
+    except Exception as e:  # pragma: no cover - diagnostic
+        result["tiny_completion"] = {"error": f"{type(e).__name__}: {e}"}
+
+    return result
 
 
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
