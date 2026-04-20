@@ -5,13 +5,41 @@ import Stage2 from './Stage2';
 import Stage3 from './Stage3';
 import './ChatInterface.css';
 
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // reader.result is a data URL: "data:image/png;base64,iVBOR..."
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(',')[1] || '';
+      resolve({
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        data_base64: base64,
+        data_url: dataUrl,
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function ChatInterface({
   conversation,
   onSendMessage,
   isLoading,
 }) {
   const [input, setInput] = useState('');
+  const [attachments, setAttachments] = useState([]);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -21,16 +49,53 @@ export default function ChatInterface({
     scrollToBottom();
   }, [conversation]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (input.trim() && !isLoading) {
-      onSendMessage(input);
-      setInput('');
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      const loaded = await Promise.all(files.map(readFileAsBase64));
+      setAttachments((prev) => [...prev, ...loaded]);
+    } catch (err) {
+      console.error('Failed to read file(s):', err);
+    }
+    // reset so the same file can be re-picked
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (idx) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handlePaste = async (e) => {
+    const items = e.clipboardData?.items || [];
+    const images = [];
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) images.push(file);
+      }
+    }
+    if (images.length > 0) {
+      e.preventDefault();
+      try {
+        const loaded = await Promise.all(images.map(readFileAsBase64));
+        setAttachments((prev) => [...prev, ...loaded]);
+      } catch (err) {
+        console.error('Failed to read pasted image:', err);
+      }
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const content = input.trim();
+    if ((!content && attachments.length === 0) || isLoading) return;
+    onSendMessage(content, attachments);
+    setInput('');
+    setAttachments([]);
+  };
+
   const handleKeyDown = (e) => {
-    // Submit on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -49,13 +114,16 @@ export default function ChatInterface({
     );
   }
 
+  const canSend = (input.trim().length > 0 || attachments.length > 0) && !isLoading;
+
   return (
     <div className="chat-interface">
       <div className="messages-container">
         {conversation.messages.length === 0 ? (
           <div className="empty-state">
+            <img src="/amp-logo.svg" alt="Amp" className="welcome-logo" />
             <h2>Start a conversation</h2>
-            <p>Ask a question to consult the LLM Council</p>
+            <p>Ask the council anything — paste images or attach files too</p>
           </div>
         ) : (
           conversation.messages.map((msg, index) => (
@@ -63,30 +131,48 @@ export default function ChatInterface({
               {msg.role === 'user' ? (
                 <div className="user-message">
                   <div className="message-label">You</div>
-                  <div className="message-content">
-                    <div className="markdown-content">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  {msg.files && msg.files.length > 0 && (
+                    <div className="message-attachments">
+                      {msg.files.map((f, i) =>
+                        f.type?.startsWith('image/') && f.data_url ? (
+                          <img
+                            key={i}
+                            src={f.data_url}
+                            alt={f.name}
+                            className="attachment-thumb"
+                          />
+                        ) : (
+                          <div key={i} className="attachment-file">
+                            {f.name}
+                          </div>
+                        )
+                      )}
                     </div>
-                  </div>
+                  )}
+                  {msg.content && (
+                    <div className="message-content">
+                      <div className="markdown-content">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="assistant-message">
                   <div className="message-label">Amp Doctor Council</div>
 
-                  {/* Stage 1 */}
                   {msg.loading?.stage1 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
-                      <span>Running Stage 1: Collecting individual responses...</span>
+                      <span>Running Stage 1: Collecting individual responses…</span>
                     </div>
                   )}
                   {msg.stage1 && <Stage1 responses={msg.stage1} />}
 
-                  {/* Stage 2 */}
                   {msg.loading?.stage2 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
-                      <span>Running Stage 2: Peer rankings...</span>
+                      <span>Running Stage 2: Peer rankings…</span>
                     </div>
                   )}
                   {msg.stage2 && (
@@ -97,11 +183,10 @@ export default function ChatInterface({
                     />
                   )}
 
-                  {/* Stage 3 */}
                   {msg.loading?.stage3 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
-                      <span>Running Stage 3: Final synthesis...</span>
+                      <span>Running Stage 3: Final synthesis…</span>
                     </div>
                   )}
                   {msg.stage3 && <Stage3 finalResponse={msg.stage3} />}
@@ -111,36 +196,79 @@ export default function ChatInterface({
           ))
         )}
 
-        {isLoading && (
+        {isLoading && conversation.messages.length === 0 && (
           <div className="loading-indicator">
             <div className="spinner"></div>
-            <span>Consulting the council...</span>
+            <span>Consulting the council…</span>
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
-      {conversation.messages.length === 0 && (
-        <form className="input-form" onSubmit={handleSubmit}>
+      <form className="input-form" onSubmit={handleSubmit}>
+        {attachments.length > 0 && (
+          <div className="attachment-strip">
+            {attachments.map((f, i) => (
+              <div key={i} className="attachment-chip">
+                {f.type.startsWith('image/') && f.data_url ? (
+                  <img src={f.data_url} alt={f.name} className="chip-thumb" />
+                ) : (
+                  <span className="chip-icon">📄</span>
+                )}
+                <span className="chip-name" title={f.name}>{f.name}</span>
+                <span className="chip-size">{formatSize(f.size)}</span>
+                <button
+                  type="button"
+                  className="chip-remove"
+                  aria-label={`Remove ${f.name}`}
+                  onClick={() => removeAttachment(i)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="input-row">
+          <button
+            type="button"
+            className="attach-button"
+            aria-label="Attach files"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.txt,.md,.json,.csv,.log"
+            onChange={handleFileSelect}
+            style={{ display: 'none' }}
+          />
           <textarea
             className="message-input"
-            placeholder="Ask your question... (Shift+Enter for new line, Enter to send)"
+            placeholder="Ask the council… (Shift+Enter for newline, Enter to send)"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             disabled={isLoading}
-            rows={3}
+            rows={2}
           />
           <button
             type="submit"
             className="send-button"
-            disabled={!input.trim() || isLoading}
+            disabled={!canSend}
           >
             Send
           </button>
-        </form>
-      )}
+        </div>
+      </form>
     </div>
   );
 }

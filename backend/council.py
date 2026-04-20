@@ -1,21 +1,79 @@
 """3-stage LLM Council orchestration."""
 
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from .openrouter import query_models_parallel, query_model
 from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
 
 
-async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
+def _decode_text_file(file: Dict[str, Any]) -> Optional[str]:
+    """Best-effort decode of a base64 text file. Returns None on failure."""
+    import base64
+    try:
+        raw = base64.b64decode(file.get("data_base64", ""))
+        return raw.decode("utf-8", errors="replace")
+    except Exception:
+        return None
+
+
+def _build_user_message(user_query: str, files: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """Build a (possibly multimodal) user message from text + attached files.
+
+    Images are passed as image_url parts (base64 data URLs) so vision-capable
+    council members can see them. Text-like files are inlined into the prompt
+    so all models can reason over them.
+    """
+    files = files or []
+    if not files:
+        return {"role": "user", "content": user_query}
+
+    text_parts: List[str] = [user_query] if user_query else []
+    content_parts: List[Dict[str, Any]] = []
+    has_image = False
+
+    for f in files:
+        mime = (f.get("type") or "").lower()
+        name = f.get("name") or "attachment"
+        b64 = f.get("data_base64") or ""
+        if mime.startswith("image/"):
+            has_image = True
+            content_parts.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime};base64,{b64}"},
+            })
+        elif mime.startswith("text/") or any(
+            name.lower().endswith(ext) for ext in (".txt", ".md", ".json", ".csv", ".log", ".py", ".js", ".ts", ".yaml", ".yml")
+        ):
+            decoded = _decode_text_file(f)
+            if decoded is not None:
+                text_parts.append(f"\n\n--- Attached file: {name} ---\n{decoded}\n--- end file ---")
+        else:
+            text_parts.append(f"\n\n[Attached non-text file: {name} ({mime}) — not readable]")
+
+    combined_text = "\n".join(t for t in text_parts if t)
+
+    if has_image:
+        # Must use multimodal content array when any image is present
+        content: List[Dict[str, Any]] = [{"type": "text", "text": combined_text or ""}]
+        content.extend(content_parts)
+        return {"role": "user", "content": content}
+
+    return {"role": "user", "content": combined_text}
+
+
+async def stage1_collect_responses(
+    user_query: str, files: Optional[List[Dict[str, Any]]] = None
+) -> List[Dict[str, Any]]:
     """
     Stage 1: Collect individual responses from all council models.
 
     Args:
         user_query: The user's question
+        files: Optional list of file attachments (images pass as vision input)
 
     Returns:
         List of dicts with 'model' and 'response' keys
     """
-    messages = [{"role": "user", "content": user_query}]
+    messages = [_build_user_message(user_query, files)]
 
     # Query all models in parallel
     responses = await query_models_parallel(COUNCIL_MODELS, messages)
@@ -293,18 +351,21 @@ Title:"""
     return title
 
 
-async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
+async def run_full_council(
+    user_query: str, files: Optional[List[Dict[str, Any]]] = None
+) -> Tuple[List, List, Dict, Dict]:
     """
     Run the complete 3-stage council process.
 
     Args:
         user_query: The user's question
+        files: Optional list of file attachments
 
     Returns:
         Tuple of (stage1_results, stage2_results, stage3_result, metadata)
     """
     # Stage 1: Collect individual responses
-    stage1_results = await stage1_collect_responses(user_query)
+    stage1_results = await stage1_collect_responses(user_query, files)
 
     # If no models responded successfully, return error
     if not stage1_results:

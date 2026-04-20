@@ -57,13 +57,22 @@ function App() {
     setCurrentConversationId(id);
   };
 
-  const handleSendMessage = async (content) => {
+  const handleSendMessage = async (content, attachments = []) => {
     if (!currentConversationId) return;
 
     setIsLoading(true);
     try {
-      // Optimistically add user message to UI
-      const userMessage = { role: 'user', content };
+      // Optimistically add user message to UI (with any attachments)
+      const userMessage = {
+        role: 'user',
+        content,
+        files: attachments.map((a) => ({
+          name: a.name,
+          type: a.type,
+          size: a.size,
+          data_url: a.data_url,
+        })),
+      };
       setCurrentConversation((prev) => ({
         ...prev,
         messages: [...prev.messages, userMessage],
@@ -106,7 +115,12 @@ function App() {
       };
 
       // Send message with streaming
-      await api.sendMessageStream(currentConversationId, content, (eventType, event) => {
+      const filesPayload = attachments.map((a) => ({
+        name: a.name,
+        type: a.type,
+        data_base64: a.data_base64,
+      }));
+      await api.sendMessageStream(currentConversationId, content, filesPayload, (eventType, event) => {
         switch (eventType) {
           case 'stage1_start':
             updateLastAssistant({ loading: { stage1: true } });

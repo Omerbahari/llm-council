@@ -5,8 +5,11 @@
   "installCommand": "echo 'no root npm install'",
   "framework": null,
   "functions": {
-    "api/[[...path]].py": {
+    "api/main.py": {
       "maxDuration": 300
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/main" }
+  ]
 }

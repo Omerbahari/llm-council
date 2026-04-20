@@ -1,17 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 360" fill="none">
-  <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="8" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-  <g filter="url(#glow)" fill="#ffffff">
-    <polygon points="30,10 200,10 170,100 0,100"/>
-    <polygon points="0,120 170,120 200,210 30,210"/>
-    <polygon points="30,230 200,230 170,320 0,320"/>
-  </g>
+<svg width="32" height="56" viewBox="0 0 16 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M15.1765 0H8.9894L0 6.0465V10.1344H7.1413L0 14.9355V19.0234H7.1413L0 23.8345V27.9224H6.18712L15.1866 21.8759V17.788H8.04526L15.1866 12.9869V8.899H8.04526L15.1866 4.09796V0H15.1765Z" fill="white"/>
 </svg>

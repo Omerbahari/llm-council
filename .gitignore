@@ -26,3 +26,4 @@ frontend/.vite/
 # Editor
 .claude/
 .DS_Store
+.vercel

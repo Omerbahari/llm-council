@@ -12,7 +12,7 @@ import asyncio
 from . import storage
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
 
-app = FastAPI(title="LLM Council API")
+app = FastAPI(title="Amp Doctor Council API")
 
 # Enable CORS. Same-origin on Vercel; wildcard is safe here because there are
 # no user cookies/sessions — the only auth is server-side OPENROUTER_API_KEY.
@@ -25,14 +25,35 @@ app.add_middleware(
 )
 
 
+# Normalise request path: on Vercel, the serverless Python runtime can strip
+# our catch-all filename prefix (e.g. "/api/main") before the ASGI app sees
+# the request. Accept either form by re-prefixing "/api" when missing so the
+# routes below (which all start with "/api/") match uniformly.
+@app.middleware("http")
+async def normalise_api_prefix(request, call_next):
+    path = request.scope.get("path", "")
+    if path and not path.startswith("/api") and path != "/":
+        request.scope["path"] = "/api" + path
+        request.scope["raw_path"] = ("/api" + path).encode()
+    return await call_next(request)
+
+
 class CreateConversationRequest(BaseModel):
     """Request to create a new conversation."""
     pass
 
 
+class FileAttachment(BaseModel):
+    """An uploaded file attachment."""
+    name: str
+    type: str = ""
+    data_base64: str
+
+
 class SendMessageRequest(BaseModel):
     """Request to send a message in a conversation."""
-    content: str
+    content: str = ""
+    files: List[FileAttachment] = []
 
 
 class ConversationMetadata(BaseModel):
@@ -94,17 +115,20 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
     # Check if this is the first message
     is_first_message = len(conversation["messages"]) == 0
 
+    files_dicts = [f.model_dump() for f in request.files]
+
     # Add user message
-    storage.add_user_message(conversation_id, request.content)
+    storage.add_user_message(conversation_id, request.content, files_dicts)
 
     # If this is the first message, generate a title
     if is_first_message:
-        title = await generate_conversation_title(request.content)
+        title_seed = request.content or (files_dicts[0]["name"] if files_dicts else "Conversation")
+        title = await generate_conversation_title(title_seed)
         storage.update_conversation_title(conversation_id, title)
 
     # Run the 3-stage council process
     stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
-        request.content
+        request.content, files_dicts
     )
 
     # Add assistant message with all stages
@@ -138,19 +162,22 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
     # Check if this is the first message
     is_first_message = len(conversation["messages"]) == 0
 
+    files_dicts = [f.model_dump() for f in request.files]
+
     async def event_generator():
         try:
             # Add user message
-            storage.add_user_message(conversation_id, request.content)
+            storage.add_user_message(conversation_id, request.content, files_dicts)
 
             # Start title generation in parallel (don't await yet)
             title_task = None
             if is_first_message:
-                title_task = asyncio.create_task(generate_conversation_title(request.content))
+                title_seed = request.content or (files_dicts[0]["name"] if files_dicts else "Conversation")
+                title_task = asyncio.create_task(generate_conversation_title(title_seed))
 
             # Stage 1: Collect responses
             yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            stage1_results = await stage1_collect_responses(request.content)
+            stage1_results = await stage1_collect_responses(request.content, files_dicts)
             yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
 
             # Stage 2: Collect rankings

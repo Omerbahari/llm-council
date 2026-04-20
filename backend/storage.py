@@ -107,21 +107,29 @@ def list_conversations() -> List[Dict[str, Any]]:
     return conversations
 
 
-def add_user_message(conversation_id: str, content: str):
+def add_user_message(conversation_id: str, content: str, files: Optional[List[Dict[str, Any]]] = None):
     """
     Add a user message to a conversation.
 
     Args:
         conversation_id: Conversation identifier
         content: User message content
+        files: Optional attached files (metadata only persisted — base64 blobs are dropped)
     """
     conversation = get_conversation(conversation_id)
     if conversation is None:
         raise ValueError(f"Conversation {conversation_id} not found")
 
+    # Strip base64 payload before persisting to keep conversation files small.
+    saved_files = [
+        {k: v for k, v in (f or {}).items() if k != "data_base64"}
+        for f in (files or [])
+    ]
+
     conversation["messages"].append({
         "role": "user",
-        "content": content
+        "content": content,
+        "files": saved_files,
     })
 
     save_conversation(conversation)
