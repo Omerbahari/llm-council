@@ -9,10 +9,16 @@
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 48px;
+  overflow-x: hidden;
+  padding: 28px 48px 12px;
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
+  overscroll-behavior: contain;
+}
+
+.messages-container > * {
+  min-width: 0;
 }
 
 .empty-state {
@@ -48,6 +54,26 @@
 
 .message-group {
   margin-bottom: 40px;
+  min-width: 0;
+}
+
+.message-group + .message-group {
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.message-content,
+.markdown-content,
+.ranking-content,
+.response-text,
+.final-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.markdown-content pre {
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .user-message,
@@ -322,11 +348,19 @@
 
 @media (max-width: 768px) {
   .messages-container {
-    padding: 16px 14px;
+    padding: 14px 14px 8px;
   }
 
   .input-form {
-    padding: 10px 12px 14px;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .message-group {
+    margin-bottom: 28px;
+  }
+
+  .message-group + .message-group {
+    padding-top: 18px;
   }
 
   .welcome-logo {

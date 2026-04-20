@@ -44,6 +44,7 @@
   background: var(--bg-card);
   border-radius: 6px;
   border: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 .rank-position {

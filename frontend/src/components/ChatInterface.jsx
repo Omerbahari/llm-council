@@ -39,14 +39,25 @@ export default function ChatInterface({
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState([]);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const lastMessageCountRef = useRef(0);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Only auto-scroll when (a) a NEW message is added, or (b) the user is
+  // already at the bottom. Don't yank the user down while they're reading
+  // older content as new stream events arrive.
   useEffect(() => {
-    scrollToBottom();
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const messageCount = conversation?.messages?.length || 0;
+    const newMessageAppeared = messageCount > lastMessageCountRef.current;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const isNearBottom = distanceFromBottom < 120;
+    if (newMessageAppeared || isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    lastMessageCountRef.current = messageCount;
   }, [conversation]);
 
   const handleFileSelect = async (e) => {
@@ -118,7 +129,7 @@ export default function ChatInterface({
 
   return (
     <div className="chat-interface">
-      <div className="messages-container">
+      <div className="messages-container" ref={messagesContainerRef}>
         {conversation.messages.length === 0 ? (
           <div className="empty-state">
             <img src="/amp-logo.svg" alt="Amp" className="welcome-logo" />
