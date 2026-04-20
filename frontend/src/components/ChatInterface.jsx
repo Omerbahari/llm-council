@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import Stage1 from './Stage1';
 import Stage2 from './Stage2';
 import Stage3 from './Stage3';
@@ -38,10 +39,20 @@ export default function ChatInterface({
 }) {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState([]);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const lastMessageCountRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Only auto-scroll when (a) a NEW message is added, or (b) the user is
   // already at the bottom. Don't yank the user down while they're reading
@@ -107,6 +118,9 @@ export default function ChatInterface({
   };
 
   const handleKeyDown = (e) => {
+    // On mobile, let Enter insert a newline so the user can type multi-line
+    // messages without the soft keyboard submitting prematurely.
+    if (isMobile) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -163,7 +177,7 @@ export default function ChatInterface({
                   {msg.content && (
                     <div className="message-content">
                       <div className="markdown-content">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                       </div>
                     </div>
                   )}
@@ -263,13 +277,17 @@ export default function ChatInterface({
           />
           <textarea
             className="message-input"
-            placeholder="Ask the council… (Shift+Enter for newline, Enter to send)"
+            placeholder={
+              isMobile
+                ? 'Ask the council…'
+                : 'Ask the council… (Shift+Enter for newline, Enter to send)'
+            }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             disabled={isLoading}
-            rows={2}
+            rows={isMobile ? 1 : 2}
           />
           <button
             type="submit"

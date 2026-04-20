@@ -4,9 +4,10 @@
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   flex-shrink: 0;
   transition: transform 0.2s ease;
+  min-height: 0;
 }
 
 .app.sidebar-closed .sidebar {
@@ -45,9 +46,11 @@
     left: 0;
     top: 0;
     bottom: 0;
+    height: 100dvh;
     z-index: 100;
     width: min(300px, 85vw);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   .app.sidebar-closed .sidebar {
