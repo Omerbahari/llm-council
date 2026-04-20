@@ -2,7 +2,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 0;
   background: var(--bg);
 }
 
@@ -318,4 +318,55 @@
   border-radius: 6px;
   font-size: 13px;
   color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .messages-container {
+    padding: 16px 14px;
+  }
+
+  .input-form {
+    padding: 10px 12px 14px;
+  }
+
+  .welcome-logo {
+    width: 44px;
+    height: 78px;
+    margin-bottom: 20px;
+  }
+
+  .empty-state h2 {
+    font-size: 18px;
+  }
+
+  .user-message .message-content {
+    max-width: 100%;
+  }
+
+  .chip-name {
+    max-width: 80px;
+  }
+
+  .attachment-thumb {
+    max-width: 180px;
+    max-height: 180px;
+  }
+
+  .stage {
+    padding: 14px;
+  }
+
+  .tab {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .send-button {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  .message-input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
 }

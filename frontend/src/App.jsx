@@ -9,6 +9,9 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth > 768 : true
+  );
 
   // Load conversations on mount
   useEffect(() => {
@@ -181,19 +184,63 @@ function App() {
     }
   };
 
+  const closeSidebarOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const handleSelectConversationMobile = (id) => {
+    handleSelectConversation(id);
+    closeSidebarOnMobile();
+  };
+
+  const handleNewConversationMobile = async () => {
+    await handleNewConversation();
+    closeSidebarOnMobile();
+  };
+
   return (
-    <div className="app">
+    <div className={`app ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+      {sidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
+      )}
       <Sidebar
         conversations={conversations}
         currentConversationId={currentConversationId}
-        onSelectConversation={handleSelectConversation}
-        onNewConversation={handleNewConversation}
+        onSelectConversation={handleSelectConversationMobile}
+        onNewConversation={handleNewConversationMobile}
+        onClose={() => setSidebarOpen(false)}
       />
-      <ChatInterface
-        conversation={currentConversation}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
+      <div className="main-column">
+        <header className="mobile-header">
+          <button
+            type="button"
+            className="sidebar-toggle"
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            onClick={() => setSidebarOpen((v) => !v)}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <div className="mobile-title">
+            <img src="/amp-logo.svg" alt="Amp" />
+            <span>Amp Doctor Council</span>
+          </div>
+        </header>
+        <ChatInterface
+          conversation={currentConversation}
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   );
 }

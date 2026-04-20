@@ -5,6 +5,7 @@ export default function Sidebar({
   currentConversationId,
   onSelectConversation,
   onNewConversation,
+  onClose,
 }) {
   return (
     <div className="sidebar">
@@ -15,6 +16,16 @@ export default function Sidebar({
             <div className="brand-name">Amp</div>
             <div className="brand-sub">Doctor Council</div>
           </div>
+          {onClose && (
+            <button
+              type="button"
+              className="sidebar-close"
+              aria-label="Close sidebar"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          )}
         </div>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           + New Conversation

@@ -5,6 +5,62 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.app.sidebar-closed .sidebar {
+  transform: translateX(-100%);
+  width: 0;
+  border-right: none;
+}
+
+.brand {
+  position: relative;
+}
+
+.sidebar-close {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.sidebar-close:hover {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    width: min(300px, 85vw);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .app.sidebar-closed .sidebar {
+    transform: translateX(-100%);
+    width: min(300px, 85vw);
+    border-right: 1px solid var(--border);
+  }
+
+  .sidebar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .sidebar-header {
