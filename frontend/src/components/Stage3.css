@@ -1,25 +1,39 @@
 .stage3 {
-  background: #f0fff0;
-  border-color: #c8e6c8;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  position: relative;
+}
+
+.stage3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 10px 0 0 10px;
 }
 
 .final-response {
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 6px;
-  border: 1px solid #c8e6c8;
+  background: var(--bg-elev);
+  padding: 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
 .chairman-label {
-  color: #2d8a2d;
-  font-size: 12px;
-  font-family: monospace;
-  margin-bottom: 12px;
+  color: var(--accent);
+  font-size: 11px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  margin-bottom: 10px;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .final-text {
-  color: #333;
+  color: var(--text);
   line-height: 1.7;
-  font-size: 15px;
+  font-size: 14px;
 }

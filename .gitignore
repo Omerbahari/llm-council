@@ -19,3 +19,10 @@ data/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+# Vercel
+.vercel/
+
+# Editor
+.claude/
+.DS_Store

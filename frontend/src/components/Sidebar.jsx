@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import './Sidebar.css';
 
 export default function Sidebar({
@@ -10,7 +9,13 @@ export default function Sidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>LLM Council</h1>
+        <div className="brand">
+          <img src="/amp-logo.svg" alt="Amp" className="brand-logo" />
+          <div className="brand-text">
+            <div className="brand-name">Amp</div>
+            <div className="brand-sub">Doctor Council</div>
+          </div>
+        </div>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           + New Conversation
         </button>

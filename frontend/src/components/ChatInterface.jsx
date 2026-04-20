@@ -41,7 +41,8 @@ export default function ChatInterface({
     return (
       <div className="chat-interface">
         <div className="empty-state">
-          <h2>Welcome to LLM Council</h2>
+          <img src="/amp-logo.svg" alt="Amp" className="welcome-logo" />
+          <h2>Welcome to Amp Doctor Council</h2>
           <p>Create a new conversation to get started</p>
         </div>
       </div>
@@ -70,7 +71,7 @@ export default function ChatInterface({
                 </div>
               ) : (
                 <div className="assistant-message">
-                  <div className="message-label">LLM Council</div>
+                  <div className="message-label">Amp Doctor Council</div>
 
                   {/* Stage 1 */}
                   {msg.loading?.stage1 && (

@@ -1,11 +1,7 @@
-.stage2 {
-  background: #fafafa;
-}
-
 .stage2 h4 {
-  margin: 20px 0 8px 0;
-  color: #333;
-  font-size: 14px;
+  margin: 18px 0 8px 0;
+  color: var(--text);
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -15,139 +11,104 @@
 
 .stage-description {
   margin: 0 0 12px 0;
-  color: #666;
-  font-size: 13px;
+  color: var(--text-dim);
+  font-size: 12px;
   line-height: 1.5;
 }
 
 .aggregate-rankings {
-  background: #f0f7ff;
-  padding: 16px;
+  background: #050505;
+  padding: 14px;
   border-radius: 8px;
-  margin-bottom: 20px;
-  border: 2px solid #d0e7ff;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-strong);
 }
 
 .aggregate-rankings h4 {
   margin: 0 0 12px 0;
-  color: #2a7ae2;
-  font-size: 15px;
+  color: var(--text);
+  font-size: 13px;
 }
 
 .aggregate-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .aggregate-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px;
-  background: #ffffff;
+  padding: 10px 12px;
+  background: var(--bg-card);
   border-radius: 6px;
-  border: 1px solid #d0e7ff;
+  border: 1px solid var(--border);
 }
 
 .rank-position {
-  color: #2a7ae2;
+  color: var(--accent);
   font-weight: 700;
-  font-size: 16px;
-  min-width: 35px;
+  font-size: 14px;
+  min-width: 30px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
 }
 
 .rank-model {
   flex: 1;
-  color: #333;
-  font-family: monospace;
-  font-size: 14px;
+  color: var(--text);
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .rank-score {
-  color: #666;
-  font-size: 13px;
-  font-family: monospace;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
 }
 
-.stage2 .tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.stage2 .tab {
-  padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px 6px 0 0;
-  color: #666;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.stage2 .tab:hover {
-  background: #f0f0f0;
-  color: #333;
-  border-color: #4a90e2;
-}
-
-.stage2 .tab.active {
-  background: #ffffff;
-  color: #4a90e2;
-  border-color: #4a90e2;
-  border-bottom-color: #ffffff;
-  font-weight: 600;
+.rank-count {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .stage2 .tab-content {
-  background: #ffffff;
-  padding: 16px;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .ranking-model {
-  color: #888;
-  font-size: 12px;
-  font-family: monospace;
-  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  margin-bottom: 10px;
 }
 
 .ranking-content {
-  color: #333;
-  line-height: 1.6;
-  font-size: 14px;
+  color: var(--text);
+  line-height: 1.65;
+  font-size: 13px;
 }
 
 .parsed-ranking {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 2px solid #e0e0e0;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 .parsed-ranking strong {
-  color: #2a7ae2;
-  font-size: 13px;
+  color: var(--accent);
+  font-size: 12px;
 }
 
 .parsed-ranking ol {
   margin: 8px 0 0 0;
-  padding-left: 24px;
-  color: #333;
+  padding-left: 22px;
+  color: var(--text);
 }
 
 .parsed-ranking li {
-  margin: 4px 0;
-  font-family: monospace;
-  font-size: 13px;
-}
-
-.rank-count {
-  color: #999;
+  margin: 3px 0;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 12px;
 }
