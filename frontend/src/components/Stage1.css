@@ -66,3 +66,15 @@
   line-height: 1.65;
   font-size: 14px;
 }
+
+@media (max-width: 768px) {
+  .response-text {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .model-name {
+    font-size: 10px;
+    word-break: break-all;
+  }
+}

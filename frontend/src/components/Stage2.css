@@ -113,3 +113,42 @@
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 12px;
 }
+
+@media (max-width: 768px) {
+  .aggregate-rankings {
+    padding: 12px;
+  }
+
+  .aggregate-item {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .rank-position {
+    min-width: 24px;
+    font-size: 13px;
+  }
+
+  .rank-model {
+    flex: 1 1 100%;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .rank-score {
+    font-size: 11px;
+  }
+
+  .rank-count {
+    font-size: 10px;
+  }
+
+  .stage-description {
+    font-size: 11px;
+  }
+
+  .ranking-content {
+    font-size: 13px;
+  }
+}

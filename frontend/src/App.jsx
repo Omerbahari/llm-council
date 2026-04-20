@@ -4,14 +4,36 @@ import ChatInterface from './components/ChatInterface';
 import { api } from './api';
 import './App.css';
 
+const MOBILE_BREAKPOINT = 768;
+
+function isMobileViewport() {
+  return typeof window !== 'undefined' && window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
 function App() {
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth > 768 : true
-  );
+  const [isMobile, setIsMobile] = useState(isMobileViewport);
+  const [sidebarOpen, setSidebarOpen] = useState(() => !isMobileViewport());
+
+  // Keep track of viewport changes (rotation, resize, keyboard open).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => {
+      const mobile = isMobileViewport();
+      setIsMobile(mobile);
+      // On mobile, keep sidebar closed by default. On desktop, re-open it.
+      setSidebarOpen((prev) => (mobile ? false : prev || true));
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
 
   // Load conversations on mount
   useEffect(() => {
@@ -185,7 +207,7 @@ function App() {
   };
 
   const closeSidebarOnMobile = () => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+    if (isMobile) {
       setSidebarOpen(false);
     }
   };

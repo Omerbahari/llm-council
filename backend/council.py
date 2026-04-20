@@ -15,6 +15,35 @@ def _decode_text_file(file: Dict[str, Any]) -> Optional[str]:
         return None
 
 
+def build_history_messages(prior_messages: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    """Convert stored conversation messages into chat-style history.
+
+    Each stored user message becomes `{"role": "user", "content": ...}` and
+    each stored assistant message becomes `{"role": "assistant", "content": ...}`
+    using the Stage 3 (chairman) synthesis as the canonical assistant reply.
+
+    Skips partial/loading messages and any assistant messages without a Stage 3
+    response (e.g., if the stream failed mid-flight).
+    """
+    history: List[Dict[str, Any]] = []
+    for msg in prior_messages or []:
+        role = msg.get("role")
+        if role == "user":
+            text = msg.get("content") or ""
+            files = msg.get("files") or []
+            if files:
+                attached = ", ".join(f.get("name") or "file" for f in files)
+                text = (text + f"\n\n[Attached: {attached}]").strip()
+            if text:
+                history.append({"role": "user", "content": text})
+        elif role == "assistant":
+            stage3 = msg.get("stage3") or {}
+            reply = stage3.get("response") if isinstance(stage3, dict) else None
+            if reply:
+                history.append({"role": "assistant", "content": reply})
+    return history
+
+
 def _build_user_message(user_query: str, files: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """Build a (possibly multimodal) user message from text + attached files.
 
@@ -61,7 +90,9 @@ def _build_user_message(user_query: str, files: Optional[List[Dict[str, Any]]] =
 
 
 async def stage1_collect_responses(
-    user_query: str, files: Optional[List[Dict[str, Any]]] = None
+    user_query: str,
+    files: Optional[List[Dict[str, Any]]] = None,
+    history: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Stage 1: Collect individual responses from all council models.
@@ -69,11 +100,15 @@ async def stage1_collect_responses(
     Args:
         user_query: The user's question
         files: Optional list of file attachments (images pass as vision input)
+        history: Optional prior chat turns to give models continuity.
 
     Returns:
         List of dicts with 'model' and 'response' keys
     """
-    messages = [_build_user_message(user_query, files)]
+    messages: List[Dict[str, Any]] = []
+    if history:
+        messages.extend(history)
+    messages.append(_build_user_message(user_query, files))
 
     # Query all models in parallel
     responses = await query_models_parallel(COUNCIL_MODELS, messages)
@@ -173,7 +208,8 @@ Now provide your evaluation and ranking:"""
 async def stage3_synthesize_final(
     user_query: str,
     stage1_results: List[Dict[str, Any]],
-    stage2_results: List[Dict[str, Any]]
+    stage2_results: List[Dict[str, Any]],
+    history: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Stage 3: Chairman synthesizes final response.
@@ -182,6 +218,7 @@ async def stage3_synthesize_final(
         user_query: The original user query
         stage1_results: Individual model responses from Stage 1
         stage2_results: Rankings from Stage 2
+        history: Optional prior chat turns so the chairman has continuity.
 
     Returns:
         Dict with 'model' and 'response' keys
@@ -197,9 +234,9 @@ async def stage3_synthesize_final(
         for result in stage2_results
     ])
 
-    chairman_prompt = f"""You are the Chairman of an LLM Council. Multiple AI models have provided responses to a user's question, and then ranked each other's responses.
+    chairman_prompt = f"""You are the Chairman of an LLM Council. Multiple AI models have provided responses to the user's latest question, and then ranked each other's responses. The prior chat history is provided in the preceding messages for context.
 
-Original Question: {user_query}
+User's Latest Question: {user_query}
 
 STAGE 1 - Individual Responses:
 {stage1_text}
@@ -207,14 +244,18 @@ STAGE 1 - Individual Responses:
 STAGE 2 - Peer Rankings:
 {stage2_text}
 
-Your task as Chairman is to synthesize all of this information into a single, comprehensive, accurate answer to the user's original question. Consider:
+Your task as Chairman is to synthesize all of this information into a single, comprehensive, accurate answer to the user's latest question. Consider:
 - The individual responses and their insights
 - The peer rankings and what they reveal about response quality
 - Any patterns of agreement or disagreement
+- The prior conversation so your reply stays coherent with what was already said
 
 Provide a clear, well-reasoned final answer that represents the council's collective wisdom:"""
 
-    messages = [{"role": "user", "content": chairman_prompt}]
+    messages: List[Dict[str, Any]] = []
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": chairman_prompt})
 
     # Query the chairman model
     response = await query_model(CHAIRMAN_MODEL, messages)
@@ -352,7 +393,9 @@ Title:"""
 
 
 async def run_full_council(
-    user_query: str, files: Optional[List[Dict[str, Any]]] = None
+    user_query: str,
+    files: Optional[List[Dict[str, Any]]] = None,
+    history: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[List, List, Dict, Dict]:
     """
     Run the complete 3-stage council process.
@@ -360,12 +403,13 @@ async def run_full_council(
     Args:
         user_query: The user's question
         files: Optional list of file attachments
+        history: Optional prior chat turns (user/assistant) for continuity.
 
     Returns:
         Tuple of (stage1_results, stage2_results, stage3_result, metadata)
     """
     # Stage 1: Collect individual responses
-    stage1_results = await stage1_collect_responses(user_query, files)
+    stage1_results = await stage1_collect_responses(user_query, files, history=history)
 
     # If no models responded successfully, return error
     if not stage1_results:
@@ -384,7 +428,8 @@ async def run_full_council(
     stage3_result = await stage3_synthesize_final(
         user_query,
         stage1_results,
-        stage2_results
+        stage2_results,
+        history=history,
     )
 
     # Prepare metadata
